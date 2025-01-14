@@ -1,4 +1,4 @@
-import time
+import time, os
 from typing import Dict, Union
 
 import anthropic
@@ -48,6 +48,80 @@ def create_chatgpt_config(
             ],
         }
     return config
+
+
+def create_nvidia_config(
+    message: Union[str, list],
+    max_tokens: int,
+    temperature: float = 1,
+    batch_size: int = 1,
+    system_message: str = "You are a helpful assistant.",
+    model: str = "gpt-3.5-turbo",
+) -> Dict:
+    if isinstance(message, list):
+        config = {
+            "model": model,
+            "max_tokens": max_tokens,
+            "base_url":'https://integrate.api.nvidia.com/v1', 
+            "temperature": temperature,
+            "messages": [{"role": "system", "content": system_message}] + message,
+        }
+    else:
+        config = {
+            "model": model,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "messages": [
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": message},
+            ],
+        }
+    return config
+
+
+def request_nvidia_engine(config, logger, base_url='https://integrate.api.nvidia.com/v1', max_retries=40, timeout=100):
+    ret = None
+    retries = 0
+    api_key="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" #os.environ["NV_DEV_API_KEY"]
+    client = openai.OpenAI(base_url=base_url,api_key=api_key)
+
+    while ret is None and retries < max_retries:
+        try:
+            # Attempt to get the completion
+            logger.info("Creating NVIDIA LLM NIM API request")
+
+            ret = client.chat.completions.create(**config)
+
+        except openai.OpenAIError as e:
+            if isinstance(e, openai.BadRequestError):
+                logger.info("Request invalid")
+                print(e)
+                logger.info(e)
+                raise Exception("Invalid API Request")
+            elif isinstance(e, openai.RateLimitError):
+                print("Rate limit exceeded. Waiting...")
+                logger.info("Rate limit exceeded. Waiting...")
+                print(e)
+                logger.info(e)
+                time.sleep(5)
+            elif isinstance(e, openai.APIConnectionError):
+                print("API connection error. Waiting...")
+                logger.info("API connection error. Waiting...")
+                print(e)
+                logger.info(e)
+                time.sleep(5)
+            else:
+                print("Unknown error. Waiting...")
+                logger.info("Unknown error. Waiting...")
+                print(e)
+                logger.info(e)
+                time.sleep(1)
+
+        retries += 1
+
+    logger.info(f"API response {ret}")
+    return ret
+
 
 
 def handler(signum, frame):

@@ -259,7 +259,7 @@ Return just the locations wrapped with ```.
             traj = {
                 "prompt": message,
                 "usage": {
-                    "prompt_tokens": num_tokens_from_messages(message, self.model),
+                    "prompt_tokens": num_tokens_from_messages(message, self.model_name),
                 },
             }
             return [], {"raw_output_loc": ""}, traj
@@ -282,7 +282,8 @@ Return just the locations wrapped with ```.
 
         f_files = []
         filtered_files = []
-
+        print(" ------------------- traj ----------------- \n", traj)
+        print(" ------------------- raw_output ----------------- \n", raw_output)
         model_identified_files_folder = self._parse_model_return_lines(raw_output)
         # remove any none folder none files
         model_identified_files_folder = [
